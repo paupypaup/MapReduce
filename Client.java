@@ -43,7 +43,9 @@ public class Client{
                     System.out.println("Appending the contents of \"append.txt\" to the end of " + choice[1]);
                     byte[] b = Files.readAllBytes(Paths.get("append.txt"));
                     dfs.append(choice[1], b);
-                } else {
+                } else if (command.equals("mapreduce")){
+                    dfs.runMapReduce(choice[1]);
+                }else{
                     System.out.println("Invalid command.");
                 }
             } else if (choice.length == 3) {

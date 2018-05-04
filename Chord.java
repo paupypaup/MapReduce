@@ -5,9 +5,7 @@ import java.net.*;
 import java.util.*;
 import java.io.*;
 
-
-public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordMessageInterface
-{
+public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordMessageInterface {
     private static final int M = 2;
     
     private Registry registry;    // rmi registry for lookup the remote objects.
@@ -331,7 +329,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
             }
         }
         catch(RemoteException e){
-	       System.out.println("Cannot retrive id");
+	       System.out.println("Cannot retrieve id");
         }
     }
 }

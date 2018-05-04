@@ -19,7 +19,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
 
     private Long numberOfRecords;
     private Set<Long> set;
-    private Map< Long, List< String >> BMap;
+    private Map< Long, List<String>> BMap;
     private Map< Long, String > BReduce;
 
     public void setWorkingPeer(Long page)
@@ -38,26 +38,40 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     }
 
     public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException {
-        //TODO
+    	try {
+            setWorkingPeer(page);
+            InputStream is = context.get(page);
+            ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+            int nRead = is.read();
+            while (nRead != 0){
+                byteBuffer.write(nRead);
+                nRead = is.read();
+            }
+            byteBuffer.flush();
+            is.close();
+            byte[] readByte = new byte[1024];
+            readByte = byteBuffer.toByteArray();
+            mapper.map(page, new String(readByte), context);   
+            set.remove(page);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     public void emitMap(Long key, String value) throws RemoteException {
         if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
-            // insert in the BMap. Allows repetition
-            if (BMap.containsKey(key)) {
-                List< String > list = new ArrayList<>();
-                BMap.put(key,list);
-            }
-            BMap.get(key).add(value);
+        	List<String> list = BMap.get(key);
+            if (list == null) list = new ArrayList<String>();
+            list.add(value);
+            BMap.put(key, list);
         } else {
-            ChordMessageInterface peer = this.locateSuccessor(key);
+        	ChordMessageInterface peer = locateSuccessor(key);
             peer.emitMap(key, value);
         }
     }
 
-    public void emitReduce(Long key,List< String > value) throws RemoteException {
+    public void emitReduce(Long key, String value) throws RemoteException {
         if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
-            // insert in the BReduce
-            BReduce.put(key, value.get(0)+": " + value.size());
+            BReduce.put(key, value);
         } else {
 
             ChordMessageInterface peer = this.locateSuccessor(key);
@@ -133,6 +147,10 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     public ChordMessageInterface getPredecessor() throws RemoteException {
 	    return predecessor;
     }
+
+	public ChordMessageInterface getSuccessor() throws RemoteException {
+	    return successor;
+	}
     
     public ChordMessageInterface locateSuccessor(long key) throws RemoteException {
 	    if (key == guid)
@@ -334,4 +352,8 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
 	       System.out.println("Cannot retrive id");
         }
     }
+    
+	public Map<Long, String> getReduce() throws RemoteException {
+		return BReduce;
+	}
 }

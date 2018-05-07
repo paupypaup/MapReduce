@@ -1,6 +1,7 @@
 import java.util.*;
 import java.io.*;
 import java.nio.file.*;
+import java.rmi.RemoteException;
 import java.math.BigInteger;
 import java.security.*;
 import com.google.gson.*;
@@ -393,5 +394,9 @@ public class DFS {
         } else {
             System.out.println("No such file exists in the DFS");
         }
+    }
+    
+    public void runMapReduce(String filename) throws Exception{
+    	
     }
 }

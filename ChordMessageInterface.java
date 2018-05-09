@@ -5,6 +5,7 @@ import java.util.*;
 public interface ChordMessageInterface extends Remote
 {
     public ChordMessageInterface getPredecessor()  throws RemoteException;
+	public ChordMessageInterface getSuccessor() throws RemoteException;
     ChordMessageInterface locateSuccessor(long key) throws RemoteException;
     ChordMessageInterface closestPrecedingNode(long key) throws RemoteException;
     public void joinRing(String Ip, int port)  throws RemoteException;
@@ -20,15 +21,15 @@ public interface ChordMessageInterface extends Remote
     public void delete(long guidObject) throws IOException, RemoteException;
 
     public void setWorkingPeer(Long page) throws RemoteException;
-    public void completePeer(Long page, Long n) throws RemoteException;
+    public void completePeer(Long page, int n) throws RemoteException;
     public Boolean isPhaseCompleted() throws RemoteException;
     
     public void reduceContext(Long source, MapReduceInterface reducer, ChordMessageInterface context) throws RemoteException;
     public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException;
 
-    public void map(Long key, String value, ChordMessageInterface context) throws IOException;
-    public void reduce(Long key, List< String > value, ChordMessageInterface context) throws IOException;
+    // public void map(Long key, String value, ChordMessageInterface context) throws IOException;
+    // public void reduce(Long key, List< String > value, ChordMessageInterface context) throws IOException;
     
-    public Map<Long, String> getPredecessorReduce() throws RemoteException;
-    public Map<Long, String> getSuccessorReduce() throws RemoteException;
+    public TreeMap<Long, String> getPredecessorReduce() throws RemoteException;
+    public TreeMap<Long, String> getSuccessorReduce() throws RemoteException;
 }

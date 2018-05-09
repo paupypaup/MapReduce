@@ -15,79 +15,18 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     private int nextFinger;
     private long guid;   		// GUID (i)
 
-    private Long numberOfRecords;
-    private Set<Long> set;
-    private Map< Long, List<String>> BMap;
-    private Map< Long, String > BReduce;
+    private int numOfRecords;
+    private Set<Long> set = new HashSet<Long>();
+    private TreeMap<Long, String> PreBReduce;
+    private TreeMap<Long, String> SucBReduce;
+    private TreeMap< Long, List<String>> BMap;
 
-    public void setWorkingPeer(Long page)
-    {
-        set.add(page);
-    }
-    public void completePeer(Long page, Long n) throws RemoteException{
-        this.numberOfRecords += n;
-        set.remove(page);
-    }
-    public Boolean isPhaseCompleted(){
-        return set.isEmpty();
-    }
-    public void reduceContext(Long source, MapReduceInterface reducer, ChordMessageInterface context) throws RemoteException {
-        //TODo
-    }
-
-    public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException {
-    	try {
-            setWorkingPeer(page);
-            InputStream is = context.get(page);
-            ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-            int nRead = is.read();
-            while (nRead != 0){
-                byteBuffer.write(nRead);
-                nRead = is.read();
-            }
-            byteBuffer.flush();
-            is.close();
-            byte[] readByte = new byte[1024];
-            readByte = byteBuffer.toByteArray();
-            mapper.map(page, new String(readByte), context);   
-            set.remove(page);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    public void emitMap(Long key, String value) throws RemoteException {
-        if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
-        	List<String> list = BMap.get(key);
-            if (list == null) list = new ArrayList<String>();
-            list.add(value);
-            BMap.put(key, list);
-        } else {
-        	ChordMessageInterface peer = locateSuccessor(key);
-            peer.emitMap(key, value);
-        }
-    }
-
-    public void emitReduce(Long key, String value) throws RemoteException {
-        if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
-            BReduce.put(key, value);
-        } else {
-
-            ChordMessageInterface peer = this.locateSuccessor(key);
-            peer.emitReduce(key, value);
-        }
-    }
-
-    @Override
-    public void map(Long key, String value, ChordMessageInterface context) throws IOException {
-
-    }
-
-    @Override
-    public void reduce(Long key, List<String> value, ChordMessageInterface context) throws IOException {
-
-    }
-
-
+    /** Ensure key belongs within the interval and exactly on the chord
+     * @param key guid to be compared between the two keys
+     * @param key1 beginning of the guid
+     * @param key2 end of the guid
+     * @return True if the guid belongs between the two keys
+     */
     public Boolean isKeyInSemiCloseInterval(long key, long key1, long key2)
     {
        if (key1 < key2)
@@ -96,6 +35,12 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
           return (key > key1 || key <= key2);
     }
 
+    /** Ensure key belongs within the interval but not exactly on the chord
+     * @param key guid to be compared between the two keys
+     * @param key1 beginning of the guid
+     * @param key2 end of the guid
+     * @return True if the guid belongs between the two keys
+     */
     public Boolean isKeyInOpenInterval(long key, long key1, long key2)
     {
       if (key1 < key2)
@@ -269,10 +214,9 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     }
     
     public void fixFingers() {
-    
-        long id= guid;
+        long id = guid;
         try {
-            long nextId = this.getId() + 1<< (nextFinger+1);
+            long nextId = this.getId() + 1 << (nextFinger + 1);
             finger[nextFinger] = locateSuccessor(nextId);
 	    
             if (finger[nextFinger].getId() == guid)
@@ -351,7 +295,124 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
         }
     }
     
-	public Map<Long, String> getReduce() throws RemoteException {
-		return BReduce;
+    /** Increment the set by 1 when a peer is tasked to work.
+     * 
+     */
+    public void setWorkingPeer(Long page)
+    {
+        set.add(page);
+    }
+    
+    /** Reduce the set by 1 when a peer has completed its page
+     * 
+     */
+    public void completePeer(Long page, int n) throws RemoteException{
+    	this.numOfRecords += n;
+        set.remove(page);
+    }
+    
+    /** Check to see if the peer has completed its process by check for the empty set.
+     * @return if the set is empty
+     */
+    public Boolean isPhaseCompleted(){
+        return set.isEmpty();
+    }
+    
+    /** Goes through each node and have it runs the reduceContext, Reducing their BMap
+     * @param source Whoever started the recursion so it can stop when it reaches back to itself
+     * @param reducer The reducer class to perform either map or reduce
+     * @param context The node performing the process. Provide flexability so anyone can make this done it's work properly
+     */
+    public void reduceContext(Long source, MapReduceInterface reducer, ChordMessageInterface context) throws RemoteException {
+        if (source != guid) {
+        	successor.reduceContext(source, reducer, context);
+        }
+        context.setWorkingPeer(source);;
+        Thread mappingThread = new Thread() {
+        	public void run() {
+        		Set<Long> setOfKeys = BMap.keySet();
+        		try {
+        			for (Long key : setOfKeys) {
+        				List<String> getList = BMap.get(key);
+        				reducer.reduce(key, getList, context);
+        			}
+        		} catch (Exception e) {
+        			e.printStackTrace();
+        		}
+        		try {
+        			completePeer(source, 1);
+        		} catch (RemoteException e) {
+        			e.printStackTrace();
+        		}
+        	}
+        };
+        mappingThread.start();
+    }
+
+    /** Reads a page and send the content to the mapper so it can map the word to the correct key
+     * @param page The page to be read
+     * @param mapper The reducer class to perform either map or reduce
+     * @param context The node performing the process. Provide flexability so anyone can make this done it's work properly
+     */
+    public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException {
+    	Thread mappingThread = new Thread() {
+    		public void run() {
+    			try {
+    	            setWorkingPeer(page);
+    	            InputStream is = context.get(page);
+    	            ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+    	            int nRead = is.read();
+    	            while (nRead != 0){
+    	                byteBuffer.write(nRead);
+    	                nRead = is.read();
+    	            }
+    	            byteBuffer.flush();
+    	            is.close();
+    	            byte[] readByte = new byte[1024];
+    	            readByte = byteBuffer.toByteArray();
+    	            mapper.map(page, new String(readByte), context);   
+    	            set.remove(page);
+    	        } catch (IOException e) {
+    	            e.printStackTrace();
+    	        }
+    		}
+    	};
+    	mappingThread.start();
+    }
+    
+    /** Check to see if the key lands before or after the node, if not it will be passed to the next node
+     * @param key The key to be compared between the two nodes
+     * @param value The value of the key
+     */
+    public void emitMap(Long key, String value) throws RemoteException {
+        if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
+        	List<String> list = BMap.get(key);
+            if (list == null) list = new ArrayList<String>();
+            list.add(value);
+            BMap.put(key, list);
+        } else {
+        	ChordMessageInterface peer = locateSuccessor(key);
+            peer.emitMap(key, value);
+        }
+    }
+
+    /** Check to see if the key lands before the guid or after the guid
+     * @param key The key to be compared between the two guids
+     * @param value The value of the key
+     */
+    public void emitReduce(Long key, String value) throws RemoteException {
+        if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
+            PreBReduce.put(key, value);
+        } else if (isKeyInOpenInterval(key, guid, successor.getId())) {
+            SucBReduce.put(key, value);
+        }
+    }
+
+	public TreeMap<Long, String> getPredecessorReduce() throws RemoteException {
+		return PreBReduce;
+	}
+	
+	public TreeMap<Long, String> getSuccessorReduce() throws RemoteException {
+		return SucBReduce;
 	}
 }

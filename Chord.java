@@ -366,17 +366,21 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     }
 
     public void emitMap(Long key, String value) throws RemoteException {
-        if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
+        if (predecessor == null){
+            System.out.println("predecessor is null");
+        }else {
+            if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
 
-        	List<String> list = BMap.get(key);
-            if (list == null)
-                list = new ArrayList<>();
-            list.add(value);
-            BMap.put(key, list);
-        	System.out.println("donezo");
-        } else {
-        	ChordMessageInterface peer = locateSuccessor(key);
-            peer.emitMap(key, value);
+                List<String> list = BMap.get(key);
+                if (list == null)
+                    list = new ArrayList<>();
+                list.add(value);
+                BMap.put(key, list);
+
+            } else {
+                ChordMessageInterface peer = locateSuccessor(key);
+                peer.emitMap(key, value);
+            }
         }
     }
 

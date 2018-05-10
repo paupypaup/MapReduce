@@ -40,8 +40,8 @@ public class Client{
                     byte[] head = dfs.head(choice[1]);
                     System.out.println(new String(head).replace("/n", "\n"));
                 } else if (command.equals("append")) {
-                    System.out.println("Appending the contents of \"append.txt\" to the end of " + choice[1]);
-                    byte[] b = Files.readAllBytes(Paths.get("append.txt"));
+                    System.out.println("Appending the contents of \"ESI.txt\" to the end of " + choice[1]);
+                    byte[] b = Files.readAllBytes(Paths.get("ESI.txt"));
                     dfs.append(choice[1], b);
                 } else if (command.equals("mapreduce")){
                     dfs.runMapReduce(choice[1]);

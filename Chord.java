@@ -16,13 +16,11 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     private long guid;   		// GUID (i)
     private int numOfRecords;
     private Set<Long> set = new HashSet<Long>();
-    private TreeMap <Long, String> preTree;
-    private TreeMap <Long, String> sucTree;
+    private TreeMap <Long, String> reduceTree;
     private TreeMap <Long, List<String>> BMap;
 
     public Chord(int port, long guid) throws RemoteException {
-        preTree = new TreeMap<>();
-        sucTree = new TreeMap<>();
+        reduceTree = new TreeMap<>();
         BMap = new TreeMap<>();
         int j;
         finger = new ChordMessageInterface[M];
@@ -31,7 +29,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
         }
         this.guid = guid;
 
-        predecessor = null;
+        predecessor = this;
         successor = this;
         Timer timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
@@ -206,8 +204,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     }
 
     public void notify(ChordMessageInterface j) throws RemoteException {
-         if (predecessor == null || (predecessor != null
-                    && isKeyInOpenInterval(j.getId(), predecessor.getId(), guid)))
+         if (predecessor == null || (isKeyInOpenInterval(j.getId(), predecessor.getId(), guid)))
              predecessor = j;
             try {
                 File folder = new File("./"+guid+"/repository/");
@@ -299,32 +296,30 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
         if (source != guid) {
         	successor.reduceContext(source, reducer, context);
         }
-        context.setWorkingPeer(source);;
-        Thread mappingThread = new Thread() {
-        	public void run() {
-        		Set<Long> setOfKeys = BMap.keySet();
-        		try {
-        			for (Long key : setOfKeys) {
-        				List<String> getList = BMap.get(key);
-        				reducer.reduce(key, getList, context);
-        			}
-        		} catch (Exception e) {
-        			e.printStackTrace();
-        		}
-        		try {
-        			completePeer(source, 1);
-        		} catch (RemoteException e) {
-        			e.printStackTrace();
-        		}
-        	}
-        };
+        context.setWorkingPeer(source);
+        Thread mappingThread = new Thread(() -> {
+            Set<Long> setOfKeys = BMap.keySet();
+            try {
+                for (Long key : setOfKeys) {
+                    List<String> getList = BMap.get(key);
+                    reducer.reduce(key, getList, context);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                completePeer(source, 1);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
         mappingThread.start();
     }
 
     public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException, InterruptedException {
     	Thread thread = new Thread(() -> {
             try {
-                setWorkingPeer(page);
+                context.setWorkingPeer(page);
                 InputStream is = context.get(page);
                 ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
                 int subset = is.read();
@@ -347,11 +342,12 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
                         long key = Long.valueOf(split[0]);
                         String val = split[1];
 
-                        mapper.map(key, val, context);
+                        mapper.map(key, val, this);
+
+                        //System.out.println("contex is " + this.getId());
                     }
                 }
-
-                set.remove(page);
+                context.completePeer(page, lines.length);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -360,8 +356,11 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     	thread.start();
         try {
             thread.join();
+            if (context.isPhaseCompleted()){
+                reduceContext(guid, mapper, this);
+            }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -375,6 +374,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
                 if (list == null)
                     list = new ArrayList<>();
                 list.add(value);
+
                 BMap.put(key, list);
 
             } else {
@@ -386,17 +386,10 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
 
     public void emitReduce(Long key, String value) throws RemoteException {
         if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
-            preTree.put(key, value);
-        } else if (isKeyInOpenInterval(key, guid, successor.getId())) {
-            sucTree.put(key, value);
+            reduceTree.put(key, value);
+        } else {
+            ChordMessageInterface peer = locateSuccessor(key);
+            peer.emitReduce(key, value);
         }
     }
-
-	public TreeMap<Long, String> getPredecessorReduce() throws RemoteException {
-		return preTree;
-	}
-	
-	public TreeMap<Long, String> getSuccessorReduce() throws RemoteException {
-		return sucTree;
-	}
 }

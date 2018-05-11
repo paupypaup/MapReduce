@@ -424,6 +424,11 @@ public class DFS {
                         e.printStackTrace();
                     }
                 }
+
+                while (!chord.isPhaseCompleted()){
+                    Thread.sleep(1000);
+                }
+                chord.reduceContext(chord.getId(), mapper, chord);
             }
         }
     }

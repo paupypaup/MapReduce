@@ -28,10 +28,6 @@ public interface ChordMessageInterface extends Remote
     
     public void reduceContext(Long source, MapReduceInterface reducer, ChordMessageInterface context) throws RemoteException;
     public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException, InterruptedException;
-
-    // public void map(Long key, String value, ChordMessageInterface context) throws IOException;
-    // public void reduce(Long key, List< String > value, ChordMessageInterface context) throws IOException;
     
-    public TreeMap<Long, String> getPredecessorReduce() throws RemoteException;
-    public TreeMap<Long, String> getSuccessorReduce() throws RemoteException;
+
 }

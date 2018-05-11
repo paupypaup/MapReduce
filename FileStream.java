@@ -1,3 +1,5 @@
+package mapreduce.MapReduce;
+
 import java.io.*;
 import java.nio.*;
 

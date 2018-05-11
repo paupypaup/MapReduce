@@ -1,3 +1,5 @@
+package mapreduce.MapReduce;
+
 public class Page {
     private int number;
     private long guid;

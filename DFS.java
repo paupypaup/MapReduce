@@ -1,3 +1,5 @@
+package mapreduce.MapReduce;
+
 import java.util.*;
 import java.io.*;
 import java.nio.file.*;
@@ -268,7 +270,7 @@ public class DFS {
         }
 
         if (toAppend != null) {
-            int maxSize = toAppend.get("pageSize").getAsInt();
+            int maxSize = toAppend.get("pageize").getAsInt();
             JsonArray pageArray = toAppend.get("pages").getAsJsonArray();
             int size = toAppend.get("size").getAsInt();
 

@@ -1,5 +1,3 @@
-package mapreduce.MapReduce;
-
 import com.google.gson.JsonArray;
 
 import java.util.ArrayList;

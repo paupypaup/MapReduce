@@ -1,5 +1,3 @@
-package mapreduce.MapReduce;
-
 import java.rmi.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
@@ -299,7 +297,6 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
      * @throws RemoteException 
      */
     public void reduceContext(Long source, MapReduceInterface reducer, ChordMessageInterface context) throws RemoteException {
-        System.out.println("============running reduceContext=========");
         if (source != guid) {
         	successor.reduceContext(source, reducer, context);
         }
@@ -324,24 +321,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
         try {
             reduceThread.join();
 
-
-
-//            Set<Long> keys = reduceTree.keySet();
-//
-//            for (Long key : keys) {
-//                String s = reduceTree.get(key);
-//
-//                System.out.println(s);
-//            }
-
-
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        try {
-
+            System.out.println("============ output of map/reduce written into reduced.txt=========");
             String aggFileName = "reduced.txt";
             FileWriter fstream = new FileWriter(aggFileName);
             BufferedWriter out = new BufferedWriter(fstream);
@@ -352,7 +332,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
             }
 
             out.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

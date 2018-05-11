@@ -1,5 +1,3 @@
-package mapreduce.MapReduce;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;

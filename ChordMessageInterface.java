@@ -1,5 +1,3 @@
-package mapreduce.MapReduce;
-
 import java.rmi.*;
 import java.io.*;
 import java.util.*;

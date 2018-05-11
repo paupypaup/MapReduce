@@ -313,16 +313,40 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
             }
         });
         reduceThread.start();
-//        try {
-//            reduceThread.join();
-//            Set <Long> keys = reduceTree.keySet();
+        try {
+            reduceThread.join();
+
+
+
+//            Set<Long> keys = reduceTree.keySet();
 //
-//            for (long k : keys)
-//                System.out.println(k);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-        File file = new File();
+//            for (Long key : keys) {
+//                String s = reduceTree.get(key);
+//
+//                System.out.println(s);
+//            }
+
+
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        try {
+
+            String aggFileName = "reduced.txt";
+            FileWriter fstream = new FileWriter(aggFileName);
+            BufferedWriter out = new BufferedWriter(fstream);
+
+            for (Map.Entry<Long, String> entry : reduceTree.entrySet()) {
+                out.write(entry.getKey() + "; " + entry.getValue() + "\n");
+                out.flush();
+            }
+
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException, InterruptedException {

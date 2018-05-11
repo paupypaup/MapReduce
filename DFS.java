@@ -270,7 +270,7 @@ public class DFS {
         }
 
         if (toAppend != null) {
-            int maxSize = toAppend.get("pageize").getAsInt();
+            int maxSize = toAppend.get("pageSize").getAsInt();
             JsonArray pageArray = toAppend.get("pages").getAsJsonArray();
             int size = toAppend.get("size").getAsInt();
 
@@ -426,6 +426,11 @@ public class DFS {
                         e.printStackTrace();
                     }
                 }
+
+                while (!chord.isPhaseCompleted()){
+                    Thread.sleep(1000);
+                }
+                chord.reduceContext(chord.getId(), mapper, chord);
             }
         }
     }

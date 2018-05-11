@@ -289,7 +289,13 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
         return set.isEmpty();
     }
     
-
+    /**
+     * This method runs the reduce context in the reduce phrase
+     * @param source a Long which is the source guid
+     * @param reducer a MapReduceInterface which consists of the abstract methods
+     * @param context a ChordMessageInterface which consists of the abstract methods.
+     * @throws RemoteException 
+     */
     public void reduceContext(Long source, MapReduceInterface reducer, ChordMessageInterface context) throws RemoteException {
         if (source != guid) {
         	successor.reduceContext(source, reducer, context);
@@ -347,7 +353,14 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
             e.printStackTrace();
         }
     }
-
+    /**
+     * This method runs the map context in the map phrase
+     * @param page A long which represents a page
+     * @param mapper a MapReduceInterface which consists of the abstract methods
+     * @param context a ChordMessageInterface which consists of the abstract methods.
+     * @throws RemoteException
+     * @throws InterruptedException 
+     */
     public void mapContext(Long page, MapReduceInterface mapper, ChordMessageInterface context) throws RemoteException, InterruptedException {
     	Thread thread = new Thread(() -> {
             try {
@@ -384,7 +397,12 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     	thread.start();
     	thread.join();
     }
-
+    /**
+     * This method is called during the map phrase and it calls the peer's emitMap method
+     * @param key a long which represents the key
+     * @param value a string which represents the value associated with the passed in key
+     * @throws RemoteException 
+     */
     public void emitMap(Long key, String value) throws RemoteException {
         if (predecessor == null){
             System.out.println("predecessor is null");
@@ -402,7 +420,12 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
             }
         }
     }
-
+    /**
+     * This method is called during the reduce phrase and it calls the peer's emitReduce method
+     * @param key a long which represents the key
+     * @param value a string which represents the value associated with the passed in key
+     * @throws RemoteException 
+     */
     public void emitReduce(Long key, String value) throws RemoteException {
         if (isKeyInOpenInterval(key, predecessor.getId(), successor.getId())) {
             reduceTree.put(key, value);

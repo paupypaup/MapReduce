@@ -353,7 +353,11 @@ public class DFS {
         return pos;
     }
 
-    
+    /**
+     * This method runs the MapReduce when called which uses the MapReduceInterface to complete this task
+     * @param fileName The file name to be affected by the MapReduce
+     * @throws Exception 
+     */
     public void runMapReduce(String fileName) throws Exception{
     	Mapper mapper = new Mapper();
     	

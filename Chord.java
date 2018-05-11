@@ -321,24 +321,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
         try {
             reduceThread.join();
 
-
-
-//            Set<Long> keys = reduceTree.keySet();
-//
-//            for (Long key : keys) {
-//                String s = reduceTree.get(key);
-//
-//                System.out.println(s);
-//            }
-
-
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            System.out.println("============ writing output of map/reduce into reduced.txt=========");
+            System.out.println("============ output of map/reduce written into reduced.txt=========");
             String aggFileName = "reduced.txt";
             FileWriter fstream = new FileWriter(aggFileName);
             BufferedWriter out = new BufferedWriter(fstream);
@@ -349,7 +332,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
             }
 
             out.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

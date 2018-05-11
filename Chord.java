@@ -291,7 +291,6 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
     
 
     public void reduceContext(Long source, MapReduceInterface reducer, ChordMessageInterface context) throws RemoteException {
-        System.out.println("============running reduceContext=========");
         if (source != guid) {
         	successor.reduceContext(source, reducer, context);
         }
@@ -333,7 +332,7 @@ public class Chord extends java.rmi.server.UnicastRemoteObject implements ChordM
         }
 
         try {
-
+            System.out.println("============ writing output of map/reduce into reduced.txt=========");
             String aggFileName = "reduced.txt";
             FileWriter fstream = new FileWriter(aggFileName);
             BufferedWriter out = new BufferedWriter(fstream);

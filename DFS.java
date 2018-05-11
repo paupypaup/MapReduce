@@ -1,3 +1,4 @@
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.io.*;
 import java.nio.file.*;
@@ -181,7 +182,6 @@ public class DFS {
     }
 
     public byte[] read(String fileName, int pageNumber) throws Exception {
-        // TODO: read pageNumber from fileName
         JsonParser jp = new JsonParser();
         JsonReader jr = readMetaData();
         JsonObject metaData = (JsonObject)jp.parse(jr);
@@ -251,6 +251,8 @@ public class DFS {
 
     public void append(String fileName, byte[] data) throws Exception {
 
+        int eight_counter = 0;
+
         JsonParser jp = new JsonParser();
         JsonReader jr = readMetaData();
         JsonObject metaData = (JsonObject)jp.parse(jr);
@@ -271,99 +273,44 @@ public class DFS {
             int maxSize = toAppend.get("pageSize").getAsInt();
             JsonArray pageArray = toAppend.get("pages").getAsJsonArray();
             int size = toAppend.get("size").getAsInt();
+            String string = new String(data);
 
             ArrayList<Page> pages = new ArrayList<>();
 
-            //If file has no pages - create new pages from toCopy
-            if (pageArray.size() == 0){
-                int pageNumber = 1;
+            int pageNumber = size + 1;
 
-                int totalPages = data.length/maxSize;
-                if (data.length%maxSize != 0){
-                    totalPages++;
+            String newline = System.getProperty("line.separator");
+
+            ArrayList <String> newpages = new ArrayList<>();
+            int position = 100;
+            while (position != -1){
+                position = ordinalIndexOf(string, newline, 8);
+                if (position != -1){
+                    newpages.add(string.substring(0, position));
+                    string = string.substring(position+2);
+                } else {
+                    newpages.add(string);
                 }
-
-                byte[] subset;
-
-
-
-                for (int i = 0; i < totalPages; i++){
-
-                    //Not the last page - e.g. page will take up full 1024 bytes
-                    if (i != totalPages -1 ){
-                        subset = Arrays.copyOfRange(data, i*maxSize, (i+1)*maxSize);
-
-                    } else {
-                        //Last page to be added
-                        subset = Arrays.copyOfRange(data, i*maxSize, data.length);
-                    }
-
-                    //Adding the actual file to the DFS
-                    InputStream is = new FileStream(subset);
-                    long guid = md5("Metadata");
-                    ChordMessageInterface peer = chord.locateSuccessor(guid);
-                    long guidPage = md5(fileName + pageNumber);
-                    peer.put(guidPage, is);
-
-                    //Adding the page to the ArrayList to update the metadata later
-                    pages.add(new Page(pageNumber, guidPage, subset.length));
-
-                    pageNumber++;
-                }
-
-            } else{
-//                //TODO: else - get the last page and append
-//                int lastpageIndex = pageArray.size()-1;
-//                int lastpage = lastpageIndex +1;
-//
-//                for (int i = 0; i < pageArray.size(); i++){
-//                    JsonObject pagei = (JsonObject)pageArray.get(i);
-//
-//                    int number = pagei.get("number").getAsInt();
-//                    long guid = pagei.get("guid").getAsLong();
-//                    int psize = pagei.get("size").getAsInt();
-//
-//                    Page page = new Page(number,guid,psize);
-//
-//                    pages.add(page);
-//                }
-//
-//                pages.remove(lastpageIndex);
-//
-//                byte[] lastPage = tail(fileName);
-//                byte[] combined = new byte[lastPage.length+data.length];
-//
-//                System.arraycopy(lastPage, 0, combined, 0, lastPage.length);
-//                System.arraycopy(data, 0, combined, lastPage.length, data.length);
-//
-//                int totalPages = combined.length/maxSize;
-//                if (combined.length%maxSize != 0){
-//                    totalPages++;
-//                }
-//
-//                byte[] subset;
-//
-//                for (int i = 0; i < totalPages; i++){
-//
-//                    if (i != totalPages -1 ){
-//                        subset = Arrays.copyOfRange(data, i*maxSize, (i+1)*maxSize);
-//
-//                    } else {
-//                        subset = Arrays.copyOfRange(data, i*maxSize, data.length);
-//                    }
-//
-//                    InputStream is = new FileStream(subset);
-//                    long guid = md5("Metadata");
-//                    ChordMessageInterface peer = chord.locateSuccessor(guid);
-//                    long guidPage = md5(fileName + lastpage);
-//                    peer.put(guidPage, is);
-//
-//                    //Adding the page to the ArrayList to update the metadata later
-//                    pages.add(new Page(lastpage, guidPage, subset.length));
-//
-//                    lastpage++;
-//                }
             }
+
+            byte [] subset;
+            for (int i = 0; i < newpages.size(); i++){
+
+                subset = newpages.get(i).getBytes();
+
+                //Adding the actual file to the DFS
+                InputStream is = new FileStream(subset);
+                long guid = md5("Metadata");
+                ChordMessageInterface peer = chord.locateSuccessor(guid);
+                long guidPage = md5(fileName + pageNumber);
+                peer.put(guidPage, is);
+
+                //Adding the page to the ArrayList to update the metadata later
+                pages.add(new Page(pageNumber, guidPage, subset.length));
+                pageNumber++;
+            }
+
+
 
             //Delete old metadata
             delete(fileName);
@@ -397,6 +344,13 @@ public class DFS {
         } else {
             System.out.println("No such file exists in the DFS");
         }
+    }
+
+    public static int ordinalIndexOf(String str, String substr, int n) {
+        int pos = str.indexOf(substr);
+        while (--n > 0 && pos != -1)
+            pos = str.indexOf(substr, pos + 1);
+        return pos;
     }
 
     
